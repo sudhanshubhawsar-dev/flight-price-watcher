@@ -4,6 +4,9 @@ from datetime import date
 from flight_checker import get_all_parsed_flights
 from price_tracker import save_price, load_history
 import time
+from config import API_KEY, API_SECRET
+from amadeus import Client
+amadeus = Client(client_id=API_KEY, client_secret=API_SECRET)
 
 # Page config
 st.set_page_config(page_title="Flight Price Watcher", page_icon="✈️", layout="wide")
@@ -143,3 +146,89 @@ else:
     # History table
     st.subheader("🗂️ History Log")
     st.dataframe(history, use_container_width=True)
+
+# --- Booking Section ---
+st.divider()
+st.subheader("🎫 Book Flight")
+st.markdown("Fill in your details to book the cheapest available flight!")
+
+with st.form("booking_form"):
+    st.markdown("**👤 Passenger Details**")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        first_name = st.text_input("First Name")
+        dob = st.date_input("Date of Birth", min_value=date(1950, 1, 1), max_value=date(2005, 1, 1))
+        email = st.text_input("Email Address")
+        passport_number = st.text_input("Passport Number")
+    with col2:
+        last_name = st.text_input("Last Name")
+        gender = st.selectbox("Gender", ["MALE", "FEMALE"])
+        phone = st.text_input("Phone Number (without +91)")
+
+    st.markdown("**✈️ Flight to Book**")
+    st.info(f"Route: {origin} → {destination} | Date: {departure_date}")
+
+    book_submit = st.form_submit_button("🎫 Book Now", type="primary")
+
+if book_submit:
+    if not all([first_name, last_name, email, phone, passport_number]):
+        st.error("Please fill in all passenger details!")
+    else:
+        try:
+            # Step 1 - Search
+            with st.spinner("Step 1: Searching best flight..."):
+                raw_flights = amadeus.shopping.flight_offers_search.get(
+                    originLocationCode=origin,
+                    destinationLocationCode=destination,
+                    departureDate=str(departure_date),
+                    adults=int(adults)
+                ).data
+
+            if not raw_flights:
+                st.error("No flights found!")
+            else:
+                cheapest_raw = min(raw_flights, key=lambda x: float(x['price']['total']))
+
+                # Step 2 - Confirm price
+                with st.spinner("Step 2: Confirming price..."):
+                    confirmed = amadeus.shopping.flight_offers.pricing.post(cheapest_raw).data
+                    flight_offer = confirmed['flightOffers'][0]
+                    confirmed_price = flight_offer['price']['total']
+
+                st.success(f"✅ Price confirmed: {confirmed_price} EUR")
+
+                # Step 3 - Book
+                with st.spinner("Step 3: Creating booking..."):
+                    from booking import build_passenger, book_flight
+
+                    passenger = build_passenger(
+                        first_name=first_name,
+                        last_name=last_name,
+                        dob=str(dob),
+                        gender=gender,
+                        email=email,
+                        phone=phone,
+                        document_number=passport_number
+                    )
+
+                    booking_result = book_flight(flight_offer, [passenger])
+
+                if booking_result:
+                    st.success("🎉 Booking Confirmed!")
+                    st.balloons()
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.write(f"📋 **Booking ID:** {booking_result['id']}")
+                        st.write(f"👤 **Passenger:** {first_name} {last_name}")
+                        st.write(f"💰 **Price:** {confirmed_price} EUR")
+                    with col2:
+                        st.write(f"✈️ **Route:** {origin} → {destination}")
+                        st.write(f"📅 **Date:** {departure_date}")
+                        st.write(f"🔖 **Reference:** {booking_result['associatedRecords'][0]['reference']}")
+                else:
+                    st.error("Booking failed. Please try again!")
+
+        except Exception as e:
+            st.error(f"Something went wrong: {str(e)}")
