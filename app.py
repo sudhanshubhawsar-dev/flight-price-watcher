@@ -7,6 +7,11 @@ import time
 from config import API_KEY, API_SECRET
 from amadeus import Client
 amadeus = Client(client_id=API_KEY, client_secret=API_SECRET)
+from database import create_tables, save_booking, get_all_bookings, get_booking_columns
+import pandas as pd
+
+# Initialize database when app starts
+create_tables()
 
 # Page config
 st.set_page_config(page_title="Flight Price Watcher", page_icon="✈️", layout="wide")
@@ -215,6 +220,21 @@ if book_submit:
                     booking_result = book_flight(flight_offer, [passenger])
 
                 if booking_result:
+                    # Save to database
+                    save_booking(
+                        booking_id=booking_result['id'],
+                        reference=booking_result['associatedRecords'][0]['reference'],
+                        first_name=first_name,
+                        last_name=last_name,
+                        email=email,
+                        phone=phone,
+                        origin=origin,
+                        destination=destination,
+                        departure_date=str(departure_date),
+                        price=float(confirmed_price),
+                        currency='EUR'
+                    )
+
                     st.success("🎉 Booking Confirmed!")
                     st.balloons()
 
@@ -232,3 +252,19 @@ if book_submit:
 
         except Exception as e:
             st.error(f"Something went wrong: {str(e)}")
+
+
+
+# --- Booking History Section ---
+st.divider()
+st.subheader("🗂️ Booking History")
+
+bookings = get_all_bookings()
+
+if not bookings:
+    st.info("No bookings yet. Book a flight to see history here!")
+else:
+    columns = get_booking_columns()
+    df = pd.DataFrame(bookings, columns=columns)
+    st.dataframe(df, use_container_width=True)
+    st.markdown(f"**Total Bookings: {len(bookings)}**")
