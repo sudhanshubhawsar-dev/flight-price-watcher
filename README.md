@@ -1,6 +1,6 @@
-# ✈️ Flight Price Watcher
+# ✈️ Flight Price Watcher & Auto Booker
 
-A Python web app that tracks flight prices and alerts you when the price hits your target — like a stock market limit order, but for flights!
+A Python web app that tracks flight prices and automatically books when the price hits your target — like a stock market limit order, but for flights!
 
 ## 🚀 Features
 
@@ -9,13 +9,16 @@ A Python web app that tracks flight prices and alerts you when the price hits yo
 - Auto price watcher that checks prices automatically every X seconds
 - Price history tracking saved to CSV
 - Live price trend chart
+- **Complete flight booking system with passenger details**
+- **3 step booking flow — Search → Confirm Price → Book**
+- **Booking confirmation with reference number**
 - Clean web UI built with Streamlit
 
 ## 🛠️ Tech Stack
 
 - Python 3.13
 - Streamlit — Web UI
-- Amadeus API — Flight data
+- Amadeus API — Flight data & booking
 - Pandas — Data tracking and analysis
 - Git & GitHub — Version control
 
@@ -44,19 +47,36 @@ A Python web app that tracks flight prices and alerts you when the price hits yo
 
 flight_watcher/
 ├── app.py              # Main Streamlit UI
-├── flight_checker.py   # Amadeus API integration
-├── price_tracker.py    # Price history tracking
-├── watcher.py          # Auto price watcher
+├── flight_checker.py   # Amadeus API integration & flight search
+├── price_tracker.py    # Price history tracking & CSV storage
+├── watcher.py          # Auto price watcher loop
+├── booking.py          # Flight booking & passenger management
 ├── config.py           # API keys (not pushed to GitHub)
 ├── price_history.csv   # Price history data
 └── README.md           # Project documentation
 
+## ✈️ How Booking Works
+
+The booking follows the official Amadeus 3 step flow:
+
+Step 1 — Flight Search
+Search available flights for your route and date.
+
+Step 2 — Price Confirmation
+Confirm the price is still available before booking.
+
+Step 3 — Flight Order Creation
+Submit passenger details and create the booking.
+Receive a booking ID and reference number instantly.
+
 ## 🗺️ Roadmap
 
 - [x] Phase 1 — Flight search and price tracking
-- [ ] Phase 2 — Data analysis and price patterns
-- [ ] Phase 3 — AI price prediction model
-- [ ] Phase 4 — Auto booking when target is hit
+- [x] Phase 1.5 — Auto price watcher
+- [x] Phase 2 — Complete flight booking system
+- [ ] Phase 3 — Data analysis and price patterns
+- [ ] Phase 4 — AI price prediction model
+- [ ] Phase 5 — Auto booking when target price is hit
 
 ## 👨‍💻 Author
 
